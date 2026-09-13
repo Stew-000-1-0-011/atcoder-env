@@ -1,0 +1,10 @@
+CompileFlags:
+  Add: [
+    -g,
+    -std=c++26,
+    -Wall,
+    -Wextra,
+    -Wpedantic,
+    -I,
+    ".",
+  ]

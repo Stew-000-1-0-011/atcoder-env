@@ -1,0 +1,17 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": ". build_cpp",
+			"type": "shell",
+			"command": "source",
+			"args": [
+				"build_cpp.bash"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		}
+	]
+}
