@@ -8,14 +8,15 @@ bash scripts/setup.bash
 ## 構成
 - `work/` : 解答 (`foo.cpp`)、入力生成 (`bar.cpp`)、出力整形 (`baz.cpp`)、デバッグ用入力 (`input.txt`)。git 管理外
 - `templates/` : `work/` のひな形。`work/` の編集はここに反映されない
-- `stew/` : 自作ライブラリ。`expand.py` で `make_default.hpp` を1ファイルに展開できる。各ヘッダの名前空間に `test()` があり、`test.cpp` から呼ぶ
+- `stew/` : 自作ライブラリ。`expand.py` で `make_default.hpp` を1ファイルに展開できる。各ヘッダの名前空間に `test()` があり、`test.cpp` から呼ぶ。テストは `// stew:test-begin` から `// stew:test-end` の間に置き、`expand.py` はそこを取り除く (`--keep-tests` で残す)。各ヘッダの名前空間をまとめて使うときは `stew::stew_compat` を使う
 - `scripts/` : ビルド (`build_cpp.bash`)、ライブラリのテスト (`test.bash`)、ランダムテスト (`find.py`)
-- `build/` : 生成物 (`*.exe`, `default.hpp`)。git 管理外
+- `build/` : 生成物 (`*.exe`, `default.hpp`, プリコンパイル済みヘッダ `pch.hpp.pch`)。git 管理外。ACL を差し替えたときは `pch.hpp.pch` を消す
 
 ## 使い方
 ```
 bash scripts/build_cpp.bash            # foo をビルド
 bash scripts/build_cpp.bash foo bar baz
+NO_PCH=1 bash scripts/build_cpp.bash  # プリコンパイル済みヘッダを使わずにビルド
 python3 scripts/find.py 100
 bash scripts/test.bash                 # stew のテストをすべて実行
 bash scripts/test.bash swag rational   # 一部だけ実行

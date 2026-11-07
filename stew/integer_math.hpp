@@ -8,9 +8,7 @@
 #include <vector>
 
 #include "integer_type.hpp"
-#include <random>
 #include <utility>
-#include "utility.hpp"
 
 namespace stew::integer_math {
 
@@ -204,6 +202,10 @@ namespace stew::integer_math {
 	}
 } // namespace stew::integer_math
 
+// stew:test-begin (expand.py はここから stew:test-end までを取り除く)
+#include <random>
+#include "utility.hpp"
+
 namespace stew::integer_math {
 	inline void test() {
 		using utility::test_check;
@@ -283,3 +285,4 @@ namespace stew::integer_math {
 		test_check(factorize(4'294'967'311ull * 3, rng) == F{{3, 1}, {4'294'967'311, 1}});
 	}
 } // namespace stew::integer_math
+// stew:test-end

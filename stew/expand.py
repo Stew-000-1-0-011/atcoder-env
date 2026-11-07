@@ -9,6 +9,8 @@ C++ファイルの #include "foo.hpp"(ダブルクオート)を再帰的に展�
   - 同じファイルは一度だけ展開する(循環include・重複展開を防止)
   - "..." の include が見つからない場合はエラーで停止する
   - 展開箇所には「どのファイルから展開されたか」がわかるマーカーを付ける
+  - // stew:test-begin の行から // stew:test-end の行までは取り除く(テスト用のコード)。
+    --keep-tests を付けると残す
 
 使い方:
   python3 expand_includes.py main.cpp
@@ -26,6 +28,14 @@ QUOTE_INCLUDE_RE = re.compile(r'^\s*#\s*include\s*"([^"]+)"\s*$')
 
 # #pragma once を拾う(行頭の空白・トークン間の空白を許容)
 PRAGMA_ONCE_RE = re.compile(r'^\s*#\s*pragma\s+once\s*$')
+
+# テスト用のコードの範囲を示すコメント
+TEST_BEGIN_RE = re.compile(r'^\s*//\s*stew:test-begin\b')
+TEST_END_RE = re.compile(r'^\s*//\s*stew:test-end\b')
+
+
+class TestBlockError(Exception):
+	"""stew:test-begin / stew:test-end の対応が取れていないことを表す。"""
 
 
 class IncludeNotFoundError(Exception):
@@ -64,6 +74,7 @@ def expand_file(
 	expanded: set[Path],
 	display_name: str,
 	from_desc: str,
+	keep_tests: bool = False,
 ) -> list[str]:
 	"""
 	path のファイルを読み、include を再帰展開した行のリストを返す。
@@ -87,7 +98,23 @@ def expand_file(
 
 	expanded.add(resolved)
 
-	for raw_line in content.splitlines():
+	in_test = False
+	for lineno, raw_line in enumerate(content.splitlines(), start=1):
+		# テスト用のコードは取り除く
+		if not keep_tests:
+			if TEST_BEGIN_RE.match(raw_line):
+				if in_test:
+					raise TestBlockError(f'{resolved}:{lineno}: stew:test-begin が入れ子になっています')
+				in_test = True
+				continue
+			if TEST_END_RE.match(raw_line):
+				if not in_test:
+					raise TestBlockError(f'{resolved}:{lineno}: 対応する stew:test-begin がありません')
+				in_test = False
+				continue
+			if in_test:
+				continue
+
 		# #pragma once は削除(そのまま次の行へ)
 		if PRAGMA_ONCE_RE.match(raw_line):
 			continue
@@ -117,8 +144,12 @@ def expand_file(
 					expanded,
 					display_name=inc_name,
 					from_desc=resolved.name,
+					keep_tests=keep_tests,
 				)
 			)
+
+	if in_test:
+		raise TestBlockError(f'{resolved}: stew:test-begin に対応する stew:test-end がありません')
 
 	# 展開終了マーカー
 	lines.append(f'// ===== END   "{display_name}" =====')
@@ -138,6 +169,10 @@ def main() -> int:
 		"-o", "--output", metavar="FILE",
 		help="出力ファイル(省略時は標準出力)",
 	)
+	parser.add_argument(
+		"--keep-tests", action="store_true",
+		help="stew:test-begin から stew:test-end までのテスト用コードを残す",
+	)
 	args = parser.parse_args()
 
 	source = Path(args.source)
@@ -155,21 +190,25 @@ def main() -> int:
 			expanded,
 			display_name=source.name,
 			from_desc="ルート(入力ファイル)",
+			keep_tests=args.keep_tests,
 		)
-	except IncludeNotFoundError as e:
+	except (IncludeNotFoundError, TestBlockError) as e:
 		print(f"エラー: {e}", file=sys.stderr)
 		return 1
 
 	result = "\n".join(lines) + "\n"
 
+	# 出力は常に UTF-8 (改行は LF) のバイト列で書く。
+	# Windows ではリダイレクト先の標準出力がロケールの文字コード (cp932) になり、
+	# 改行も \r\n に変換されるので、標準出力でも -o でも UTF-8 のバイト列をそのまま書き出す
+	data = result.encode("utf-8")
 	if args.output:
-		Path(args.output).write_text(result, encoding="utf-8")
+		Path(args.output).write_bytes(data)
 		print(f"書き出しました: {args.output}", file=sys.stderr)
 	else:
-		# Windows ではリダイレクト先の標準出力がロケールの文字コード (cp932) になり、
-		# 改行も \r\n に変換されるので、UTF-8 のバイト列をそのまま書き出す
 		sys.stdout.flush()
-		sys.stdout.buffer.write(result.encode("utf-8"))
+		sys.stdout.buffer.write(data)
+		sys.stdout.buffer.flush()
 
 	return 0
 

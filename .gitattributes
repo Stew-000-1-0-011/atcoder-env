@@ -1,0 +1,6 @@
+# 改行コードをそろえる。リポジトリ内は LF で持ち、作業コピーは各 OS の設定に合わせて変換する
+* text=auto
+
+# bash は CRLF だと動かないので、どの OS でも LF で取り出す
+*.bash text eol=lf
+*.sh text eol=lf

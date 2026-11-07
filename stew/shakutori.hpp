@@ -5,8 +5,6 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
-#include "integer_type.hpp"
-#include "utility.hpp"
 
 namespace stew::shakutori {
 	// 内部可変性で外側にはimutableなものに`mutable`を使うのがちょっと不安なので、
@@ -123,6 +121,10 @@ namespace stew::shakutori {
 	}
 } // namespace stew::shakutori
 
+// stew:test-begin (expand.py はここから stew:test-end までを取り除く)
+#include "integer_type.hpp"
+#include "utility.hpp"
+
 namespace stew::shakutori {
 	namespace test_detail {
 		// 区間和が k 以下か
@@ -198,3 +200,4 @@ namespace stew::shakutori {
 		}
 	}
 } // namespace stew::shakutori
+// stew:test-end

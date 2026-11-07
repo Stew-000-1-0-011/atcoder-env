@@ -5,7 +5,6 @@
 
 #include "integer_type.hpp"
 #include <array>
-#include "utility.hpp"
 
 namespace stew::acc_sum {
 	template <
@@ -101,6 +100,9 @@ namespace stew::acc_sum {
 	}
 } // namespace stew::acc_sum
 
+// stew:test-begin (expand.py はここから stew:test-end までを取り除く)
+#include "utility.hpp"
+
 namespace stew::acc_sum {
 	inline void test() {
 		using utility::test_check;
@@ -149,3 +151,4 @@ namespace stew::acc_sum {
 		}
 	}
 } // namespace stew::acc_sum
+// stew:test-end
