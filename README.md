@@ -1,14 +1,13 @@
 atcoder用の環境。
 
-直下に ACL の `atcoder/` を置いてから使う。
+clone したら最初に一度だけ実行する。ACL (`atcoder/`) の取得と、`templates/` のひな形から `work/` の作成を行う。
 ```
-git clone --depth 1 https://github.com/atcoder/ac-library.git
-mv ac-library/atcoder .
-rm -rf ac-library
+bash scripts/setup.bash
 ```
 
 ## 構成
 - `work/` : 解答 (`foo.cpp`)、入力生成 (`bar.cpp`)、出力整形 (`baz.cpp`)、デバッグ用入力 (`input.txt`)。git 管理外
+- `templates/` : `work/` のひな形。`work/` の編集はここに反映されない
 - `stew/` : 自作ライブラリ。`expand.py` で `make_default.hpp` を1ファイルに展開できる
 - `scripts/` : ビルド (`build_cpp.bash`) とランダムテスト (`find.py`)
 - `build/` : 生成物 (`*.exe`, `default.hpp`)。git 管理外
