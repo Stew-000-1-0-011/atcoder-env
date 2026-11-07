@@ -4,25 +4,34 @@
 #include <concepts>
 #include <numeric>
 #include <tuple>
+#include <type_traits>
 #include <vector>
 
 #include "integer_type.hpp"
+#include <random>
+#include <utility>
+#include "utility.hpp"
 
 namespace stew::integer_math {
 
+	// T_ 同士の積が収まる型 (u32 以下 -> u64, u64 -> u128)
+	// u128 は厳格モードでは std::unsigned_integral を満たさないので、使う側の U_ は制約していない
+	template <std::unsigned_integral T_>
+	using wide_t = std::conditional_t<(sizeof(T_) <= 4), u64, u128>;
+
 	// n -> (log2(n)の切り捨て, 余り)
+	// n >= 1 であること
 	// O(log n)
-	inline constexpr auto log2(const std::unsigned_integral auto n)
-		-> std::tuple<decltype(n), decltype(n)> {
-		using T = decltype(n);
+	inline constexpr auto log2(const std::unsigned_integral auto n) {
+		using T = std::remove_const_t<decltype(n)>;
 		T result = 0;
 		for(T i = n; i > 1; i >>= 1) {
 			++result;
 		}
-		return {result, n - (T(1) << result)};
+		return std::tuple<T, T>{result, T(n - (T(1) << result))};
 	}
 
-	template <std::unsigned_integral T_, std::unsigned_integral U_ = T_>
+	template <std::unsigned_integral T_, class U_ = wide_t<T_>>
 	inline constexpr auto mod_pow(T_ a, T_ n, T_ mod) -> T_ {
 		T_ result = 1;
 		while(n > 0) {
@@ -106,7 +115,7 @@ namespace stew::integer_math {
 	}
 
 	// Brent's cycle detection による Pollard's Rho
-	template <std::unsigned_integral T_, std::unsigned_integral U_ = T_>
+	template <std::unsigned_integral T_, class U_ = wide_t<T_>>
 	inline auto brent_rho(T_ n, auto&& rng) -> T_
 		requires requires {
 			{ rng() } -> std::convertible_to<T_>;
@@ -156,7 +165,7 @@ namespace stew::integer_math {
 		}
 	{
 		std::vector<std::pair<u64, u64>> ret{};
-		if(n == 1) return ret;
+		if(n <= 1) return ret;  // 0 と 1 は空を返す
 		if(is_prime_u64(n)) {
 			ret.push_back({n, 1});
 			return ret;
@@ -192,5 +201,85 @@ namespace stew::integer_math {
 			++i2;
 		}
 		return ret;
+	}
+} // namespace stew::integer_math
+
+namespace stew::integer_math {
+	inline void test() {
+		using utility::test_check;
+
+		// log2
+		{
+			const auto [e, rest] = log2(10u);
+			test_check(e == 3 && rest == 2);
+		}
+		{
+			const auto [e, rest] = log2(u64(1));
+			test_check(e == 0 && rest == 0);
+		}
+		{
+			const auto [e, rest] = log2(u64(1) << 40 | 5);
+			test_check(e == 40 && rest == 5);
+		}
+		{
+			const auto [e, rest] = log2(u8(255));
+			test_check(e == 7 && rest == 127);
+		}
+
+		// mod_pow
+		test_check(mod_pow<u64>(2, 10, 1000) == 24);
+		test_check(mod_pow<u64>(5, 0, 7) == 1);
+		test_check(mod_pow<u64>(3, 1'000'000'006, 1'000'000'007) == 1);
+		// 法が 2^32 以上 (途中の積が 64bit を超える)
+		test_check(
+			mod_pow<u64>(3, 1'000'000'000'000'000'000, 999'999'999'999'999'989)
+			== 531441
+		);
+		test_check(
+			mod_pow<u64>(2, 64, 1'000'000'000'000'000'003) == 446744073709551562
+		);
+
+		// 素数判定: 小さい数は試し割りと一致する
+		const auto naive_is_prime = [](const u64 n) {
+			if(n < 2) return false;
+			for(u64 d = 2; d * d <= n; ++d) {
+				if(n % d == 0) return false;
+			}
+			return true;
+		};
+		for(u64 n = 0; n < 2000; ++n) {
+			test_check(is_prime_4759123140<u64>(n) == naive_is_prime(n));
+			test_check(is_prime_u64<u64>(n) == naive_is_prime(n));
+		}
+		// 2^32 より大きい数
+		test_check(is_prime_4759123140<u64>(4'294'967'311));
+		test_check(!is_prime_4759123140<u64>(4'294'967'297));  // 641 * 6700417
+		test_check(is_prime_u64<u64>(4'294'967'311));
+		test_check(!is_prime_u64<u64>(4'294'967'297));
+		test_check(is_prime_u64<u64>(999'999'999'999'999'989));
+		test_check(!is_prime_u64<u64>(999'999'999'999'999'991));
+		test_check(is_prime_u64<u64>(1'000'000'000'000'000'003));
+
+		// 素因数分解
+		std::mt19937_64 rng{12345};
+		using F = std::vector<std::pair<u64, u64>>;
+		test_check(factorize(1, rng).empty());
+		test_check(factorize(97, rng) == F{{97, 1}});
+		test_check(factorize(360, rng) == F{{2, 3}, {3, 2}, {5, 1}});
+		test_check(
+			factorize(4'294'967'295, rng)
+			== F{{3, 1}, {5, 1}, {17, 1}, {257, 1}, {65537, 1}}
+		);
+		test_check(factorize(0, rng).empty());
+		test_check(factorize(999'999'999'999'999'989, rng) == F{{999'999'999'999'999'989, 1}});
+		test_check(
+			factorize(600'851'475'143, rng) == F{{71, 1}, {839, 1}, {1471, 1}, {6857, 1}}
+		);
+		test_check(factorize(1'000'000'000'000'000'000, rng) == F{{2, 18}, {5, 18}});
+		test_check(
+			factorize(998'244'353ull * 1'000'000'007ull, rng)
+			== F{{998'244'353, 1}, {1'000'000'007, 1}}
+		);
+		test_check(factorize(4'294'967'311ull * 3, rng) == F{{3, 1}, {4'294'967'311, 1}});
 	}
 } // namespace stew::integer_math

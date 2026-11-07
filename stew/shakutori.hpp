@@ -5,6 +5,8 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+#include "integer_type.hpp"
+#include "utility.hpp"
 
 namespace stew::shakutori {
 	// 内部可変性で外側にはimutableなものに`mutable`を使うのがちょっと不安なので、
@@ -118,5 +120,81 @@ namespace stew::shakutori {
 		}
 
 		return ret;
+	}
+} // namespace stew::shakutori
+
+namespace stew::shakutori {
+	namespace test_detail {
+		// 区間和が k 以下か
+		struct SumLe {
+			using Element = i64;
+			using Ret = bool;
+			i64 k;
+			i64 sum = 0;
+			void extend_r(const i64& e) { sum += e; }
+			void shrink_l(const i64& e) { sum -= e; }
+			void shrink_r(const i64& e) { sum -= e; }
+			auto value() const -> bool { return sum <= k; }
+		};
+
+		// 区間和
+		struct Sum {
+			using Element = i64;
+			using Ret = i64;
+			i64 sum = 0;
+			void extend_r(const i64& e) { sum += e; }
+			void shrink_l(const i64& e) { sum -= e; }
+			auto value() const -> i64 { return sum; }
+		};
+	} // namespace test_detail
+
+	inline void test() {
+		using utility::test_check;
+		using P = std::vector<std::pair<usize, usize>>;
+
+		// shak: 区間和が 6 以下になる最長の区間
+		{
+			const std::vector<i64> a{1, 2, 3, 4, 5};
+			auto prop = [&](const usize l, const usize r) {
+				i64 s = 0;
+				for(usize i = l; i < r; ++i) s += a[i];
+				return s <= 6;
+			};
+			const auto ret = shak<true>(prop, std::pair<usize, usize>{0, a.size()});
+			test_check(ret == P{{0, 3}, {1, 3}, {2, 3}, {3, 4}, {4, 5}});
+		}
+		// shak: 1要素で条件を破る場合は空区間
+		{
+			const std::vector<i64> a{7, 1, 7};
+			auto prop = [&](const usize l, const usize r) {
+				i64 s = 0;
+				for(usize i = l; i < r; ++i) s += a[i];
+				return s <= 6;
+			};
+			const auto ret = shak<true>(prop, std::pair<usize, usize>{0, a.size()});
+			test_check(ret == P{{0, 0}, {1, 2}, {2, 2}});
+		}
+
+		// shak_window: 各 l について、区間和が 6 以下の最長区間の和
+		{
+			const std::vector<i64> a{1, 2, 3, 4, 5};
+			test_detail::SumLe prop{.k = 6};
+			test_detail::Sum sum{};
+			auto arr = [&](const usize i) -> i64 { return a[i]; };
+			const auto ret = shak_window<i64, true>(
+				prop, sum, arr, std::pair<usize, usize>{0, a.size()}
+			);
+			test_check(ret == std::vector<i64>{6, 5, 3, 4, 5});
+		}
+		{
+			const std::vector<i64> a{7, 1, 7};
+			test_detail::SumLe prop{.k = 6};
+			test_detail::Sum sum{};
+			auto arr = [&](const usize i) -> i64 { return a[i]; };
+			const auto ret = shak_window<i64, true>(
+				prop, sum, arr, std::pair<usize, usize>{0, a.size()}
+			);
+			test_check(ret == std::vector<i64>{0, 1, 0});
+		}
 	}
 } // namespace stew::shakutori

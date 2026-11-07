@@ -1,3 +1,30 @@
+# ACL (README の手順で各自配置する)
+/atcoder/
+/ac-library/
+
+# 作業ファイル (解答・生成器・入力など)
+/work/
+
+# ビルド成果物 (default.hpp も scripts/build_cpp.bash が生成する)
+/build/
+*.exe
+*.out
+*.o
+*.dSYM/
+
+# find.py が差分を見つけたときの出力
+divergence_*.bin
+
+# clangd
 .cache/
-atcoder/
-*.exe/
+compile_commands.json
+
+# エディタ・OS (.vscode は共有したい設定だけ管理する)
+.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/

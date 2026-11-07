@@ -13,12 +13,16 @@
 
 import subprocess
 import sys
+from pathlib import Path
+
+# 実行ファイルと出力はリポジトリ直下の build/ に置く
+BUILD = Path(__file__).resolve().parent.parent / "build"
 
 
 def run(exe, stdin=None):
     """exe を起動し、stdin(bytes) を渡して stdout(bytes) を返す。"""
     proc = subprocess.run(
-        [exe],
+        [str(BUILD / exe)],
         input=stdin,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -56,11 +60,11 @@ def main():
 
     bar_out, foo_out, foo2_out = result
     # 必要に応じてファイルに保存しておくと再現に便利
-    with open("divergence_bar.bin", "wb") as f:
+    with open(BUILD / "divergence_bar.bin", "wb") as f:
         f.write(bar_out)
-    with open("divergence_foo.bin", "wb") as f:
+    with open(BUILD / "divergence_foo.bin", "wb") as f:
         f.write(foo_out)
-    with open("divergence_foo2.bin", "wb") as f:
+    with open(BUILD / "divergence_foo2.bin", "wb") as f:
         f.write(foo2_out)
 
     print("bar.exe out :", bar_out)

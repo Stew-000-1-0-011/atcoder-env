@@ -2,11 +2,11 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"label": ". build_cpp",
+			"label": "build_cpp",
 			"type": "shell",
-			"command": "source",
+			"command": "bash",
 			"args": [
-				"build_cpp.bash"
+				"${workspaceFolder}/scripts/build_cpp.bash"
 			],
 			"group": {
 				"kind": "build",
