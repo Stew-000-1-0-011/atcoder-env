@@ -2,11 +2,11 @@
 
 #include <deque>
 #include <iterator>
+#include <limits>
 #include <queue>
 #include <ranges>
 #include <tuple>
 #include <type_traits>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -50,20 +50,27 @@ namespace stew::graph {
 	template <class T_>
 	concept mut_weighted_adjant = weighted_adjant<T_> && mut_adjant<T_>;
 
-	template <class Vertex_, class Cost_ = Vertex_>
-	inline constexpr auto dijkstra(
-		const Vertex_ start, const Vertex_ goal, auto&& adj
-	) -> std::unordered_map<Vertex_, std::pair<Cost_, Vertex_>>
+	// 頂点 0 .. n-1 のグラフで、start からの最短距離を求める。
+	// 戻り値の [v] は (距離, 最短経路で v の直前の頂点)。
+	//   - start は (0, usize(-1))
+	//   - 届かない頂点は (Cost_ の最大値, usize(-1))
+	// goal を取り出した時点で打ち切るので、goal 以外の頂点の距離は確定していないことがある。
+	// すべての頂点の距離が必要なら、goal に n 以上の値 (usize(-1) など) を渡す。
+	template <class Cost_ = i64>
+	inline auto dijkstra(
+		const usize n, const usize start, const usize goal, auto&& adj
+	) -> std::vector<std::pair<Cost_, usize>>
 	requires weighted_adjant<std::remove_cvref_t<decltype(adj)>>
 	{
-		std::unordered_map<Vertex_, std::pair<Cost_, Vertex_>> dist{};
+		constexpr Cost_ inf = std::numeric_limits<Cost_>::max();
+		std::vector<std::pair<Cost_, usize>> dist(n, {inf, usize(-1)});
 		std::priority_queue<
-			std::pair<Cost_, Vertex_>,
-			std::vector<std::pair<Cost_, Vertex_>>,
-			std::greater<std::pair<Cost_, Vertex_>>
+			std::pair<Cost_, usize>,
+			std::vector<std::pair<Cost_, usize>>,
+			std::greater<std::pair<Cost_, usize>>
 		>
 			que{};
-		dist[start] = {Cost_(0), Vertex_(-1)};
+		dist[start] = {Cost_(0), usize(-1)};
 		que.push({Cost_(0), start});
 
 		while(!que.empty()) {
@@ -74,10 +81,9 @@ namespace stew::graph {
 				continue;
 
 			for(const auto& [next, w] : adj(v)) {
-				const auto new_cost = cost + w;
-				if(dist.find(next) == dist.end() ||
-					new_cost < dist[next].first) {
-					dist[next] = std::pair{new_cost, v};
+				const Cost_ new_cost = cost + w;
+				if(new_cost < dist[next].first) {
+					dist[next] = {new_cost, v};
 					que.push({new_cost, next});
 				}
 			}
@@ -210,13 +216,67 @@ namespace stew::graph {
 				{{1, 2}},
 				{},
 			};
-			const auto dist = dijkstra<usize, i64>(
-				0, 3, [&](const usize v) -> const auto& { return g[v]; }
+			const auto dist = dijkstra(
+				4, 0, 3, [&](const usize v) -> const auto& { return g[v]; }
 			);
-			test_check(dist.at(0).first == 0);
-			test_check(dist.at(2) == std::pair<i64, usize>{1, 0});
-			test_check(dist.at(1) == std::pair<i64, usize>{3, 2});
-			test_check(dist.at(3) == std::pair<i64, usize>{4, 1});
+			using P = std::pair<i64, usize>;
+			test_check(dist.size() == 4);
+			test_check(dist[0] == P{0, usize(-1)});
+			test_check(dist[2] == P{1, 0});
+			test_check(dist[1] == P{3, 2});
+			test_check(dist[3] == P{4, 1});
+		}
+
+		// dijkstra: 届かない頂点と、Cost_ の指定
+		{
+			const std::vector<std::vector<std::pair<usize, i32>>> g{{{1, 5}}, {}, {{0, 1}}};
+			const auto dist = dijkstra<i32>(
+				3, 0, usize(-1), [&](const usize v) -> const auto& { return g[v]; }
+			);
+			test_check(dist[1] == std::pair<i32, usize>{5, 0});
+			test_check(dist[2] == std::pair<i32, usize>{std::numeric_limits<i32>::max(), usize(-1)});
+		}
+
+		// dijkstra: ランダムなグラフで、ベルマンフォードと比べる (全頂点を求める)
+		{
+			std::mt19937 rng{11};
+			for(int iter = 0; iter < 200; ++iter) {
+				const usize n = 1 + rng() % 10;
+				std::vector<std::vector<std::pair<usize, i64>>> g(n);
+				std::vector<std::tuple<usize, usize, i64>> edges{};
+				const usize m = rng() % (n * 3 + 1);
+				for(usize e = 0; e < m; ++e) {
+					const usize a = rng() % n;
+					const usize b = rng() % n;
+					const i64 w = rng() % 10;
+					g[a].push_back({b, w});
+					edges.push_back({a, b, w});
+				}
+				const usize start = rng() % n;
+
+				constexpr i64 inf = std::numeric_limits<i64>::max();
+				std::vector<i64> bf(n, inf);
+				bf[start] = 0;
+				for(usize k = 0; k < n; ++k) {
+					for(const auto& [a, b, w] : edges) {
+						if(bf[a] != inf && bf[a] + w < bf[b]) bf[b] = bf[a] + w;
+					}
+				}
+
+				const auto dist = dijkstra(
+					n, start, usize(-1), [&](const usize v) -> const auto& { return g[v]; }
+				);
+				for(usize v = 0; v < n; ++v) {
+					test_check(dist[v].first == bf[v]);
+					// 直前の頂点からの辺で距離が説明できる
+					if(v != start && bf[v] != inf) {
+						const usize p = dist[v].second;
+						bool ok = false;
+						for(const auto& [to, w] : g[p]) ok |= (to == v && dist[p].first + w == dist[v].first);
+						test_check(ok);
+					}
+				}
+			}
 		}
 
 		// tarjan: {0, 1, 2} -> {3, 4}
