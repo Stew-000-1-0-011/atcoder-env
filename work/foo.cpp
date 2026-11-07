@@ -1,6 +1,6 @@
 #include <atcoder/segtree.hpp>
 
-#include "default2.hpp"
+#include "default.hpp"
 #include <algorithm>
 #include <compare>
 #include <limits>

@@ -2,7 +2,7 @@
 /atcoder/
 /ac-library/
 
-# ビルド成果物 (default2.hpp も scripts/build_cpp.bash が生成する)
+# ビルド成果物 (default.hpp も scripts/build_cpp.bash が生成する)
 /build/
 *.exe
 *.out
