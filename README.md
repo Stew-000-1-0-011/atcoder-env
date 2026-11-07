@@ -20,3 +20,6 @@ python3 scripts/find.py 100
 bash scripts/test.bash                 # stew のテストをすべて実行
 bash scripts/test.bash swag rational   # 一部だけ実行
 ```
+
+## 生成AIルールについて
+`stew/` などには生成AIで作成したコードが含まれる。[AtCoder の生成AI対策ルール](https://info.atcoder.jp/entry/llm-rules-ja)により、ABC・ARC・AGC の開催中に使うには、コンテスト開始前にこのリポジトリへ push して公開しておき、提出に URL を含める必要がある。URL は `scripts/build_cpp.bash` が生成する `build/default.hpp` の先頭に入るので、`stew/expand.py` で展開した提出コードにもそのまま残る。
