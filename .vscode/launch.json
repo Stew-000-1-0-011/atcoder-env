@@ -8,14 +8,15 @@
 			"name": "Launch",
 			"type": "lldb",
 			"request": "launch",
-			"program": "${workspaceRoot}/foo.exe",
+			"program": "${workspaceFolder}/build/foo.exe",
 			"args": [],
 			"stdio": [
-				"${workspaceFolder}/input.txt",
+				"${workspaceFolder}/work/input.txt",
 				null,
 				null
 			],
-			"cwd": "${workspaceRoot}"
+			"cwd": "${workspaceFolder}",
+			"preLaunchTask": "build_cpp"
 		}
 	]
 }
