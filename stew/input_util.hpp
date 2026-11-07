@@ -5,6 +5,21 @@
 #include <tuple>
 #include <utility>
 namespace stew::input_util {
+	namespace impl {
+		// このヘッダを include すると、main の前に一度だけ入出力を高速化する。
+		//   - sync_with_stdio(false): C の stdio との同期を切り、cin が自前のバッファで読むようにする
+		//   - cin.tie(nullptr): 入力のたびに cout を書き出さないようにする
+		// その代わり、次のことに注意する:
+		//   - 入力で cin と scanf などの C の関数を混ぜない
+		//   - 出力で cout と printf / std::println(stdout に書く) を混ぜない (順番が入れ替わることがある)
+		//   - インタラクティブな問題では、出力のたびに書き出す (std::fflush(stdout) や std::flush)
+		inline const bool fast_io_enabled = [] {
+			std::ios::sync_with_stdio(false);
+			std::cin.tie(nullptr);
+			return true;
+		}();
+	} // namespace impl
+
 	struct InputMarker {};
 
 	template <class T_> struct Z final : InputMarker {
@@ -48,6 +63,11 @@ namespace stew::input_util {
 		test_check(a == 7 && b == 7 && c == 9);
 
 		std::cin.rdbuf(old);
+
+		// include しただけで高速化の設定が済んでいる
+		test_check(impl::fast_io_enabled);
+		test_check(std::cin.tie() == nullptr);
+		test_check(!std::ios::sync_with_stdio(false));  // 戻り値は直前の設定
 	}
 } // namespace stew::input_util
 // stew:test-end

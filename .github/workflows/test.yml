@@ -1,0 +1,52 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    # 手元で確認したのと同じ環境 (clang 21 / g++ 15、C++26 の <print> がある libstdc++)
+    container: ubuntu:26.04
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: 必要なパッケージを入れる
+        run: |
+          apt-get update
+          apt-get install -y clang g++ python3 git ca-certificates
+
+      - uses: actions/checkout@v4
+
+      - name: 準備 (ACL の取得と work/ の作成)
+        run: bash scripts/setup.bash
+
+      - name: stew のテスト (clang、サニタイザ付き)
+        run: bash scripts/test.bash
+
+      - name: stew のテスト (g++)
+        run: |
+          g++ -std=c++26 -O2 -Wall -Wextra -Istew stew/test.cpp -o build/test_gcc.exe
+          ng=0
+          for name in $(build/test_gcc.exe --list); do
+            build/test_gcc.exe "$name" || ng=$((ng + 1))
+          done
+          [ "$ng" -eq 0 ]
+
+      - name: ひな形のビルドと実行
+        run: |
+          bash scripts/build_cpp.bash foo bar baz
+          [ "$(echo 5 | build/foo.exe)" = "5" ]
+          build/bar.exe | build/baz.exe
+
+      - name: 展開したコードにテストが含まれず、公開先の URL が含まれる
+        run: |
+          python3 stew/expand.py work/foo.cpp -I build -o build/submit.cpp
+          if grep -q "stew:test-begin\|inline void test()" build/submit.cpp; then exit 1; fi
+          grep -q "https://github.com/Stew-000-1-0-011/atcoder-env" build/submit.cpp
+          clang++ -std=c++26 -O2 -I. build/submit.cpp -o build/submit.exe
+          [ "$(echo 5 | build/submit.exe)" = "5" ]
