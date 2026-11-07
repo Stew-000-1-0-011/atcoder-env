@@ -2,6 +2,9 @@
 /atcoder/
 /ac-library/
 
+# 作業ファイル (解答・生成器・入力など)
+/work/
+
 # ビルド成果物 (default.hpp も scripts/build_cpp.bash が生成する)
 /build/
 *.exe
