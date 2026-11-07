@@ -4,6 +4,8 @@
 #include <vector>
 
 #include "integer_type.hpp"
+#include <array>
+#include "utility.hpp"
 
 namespace stew::acc_sum {
 	template <
@@ -96,5 +98,54 @@ namespace stew::acc_sum {
 		}
 
 		return ans;
+	}
+} // namespace stew::acc_sum
+
+namespace stew::acc_sum {
+	inline void test() {
+		using utility::test_check;
+
+		// 1次元: a = {3, 1, 4, 1, 5} を1つずらして置く
+		{
+			const std::array<usize, 1> shape{6};
+			std::vector<i64> acc{0, 3, 1, 4, 1, 5};
+			do_acc<i64, 1>(acc, shape);
+			test_check(acc == std::vector<i64>{0, 3, 4, 8, 9, 14});
+			test_check(query_acc<i64, 1>(acc, shape, {1}, {4}) == 6);
+			test_check(query_acc<i64, 1>(acc, shape, {0}, {5}) == 14);
+			test_check(query_acc<i64, 1>(acc, shape, {2}, {2}) == 0);
+		}
+
+		// 2次元: a = {{1, 2, 3}, {4, 5, 6}} を1行1列ずらして置く
+		{
+			const std::array<usize, 2> shape{3, 4};
+			std::vector<i64> acc{
+				0, 0, 0, 0,
+				0, 1, 2, 3,
+				0, 4, 5, 6,
+			};
+			do_acc<i64, 2>(acc, shape);
+			test_check(acc == std::vector<i64>{
+				0, 0, 0, 0,
+				0, 1, 3, 6,
+				0, 5, 12, 21,
+			});
+			test_check(query_acc<i64, 2>(acc, shape, {0, 0}, {2, 3}) == 21);
+			test_check(query_acc<i64, 2>(acc, shape, {1, 0}, {2, 2}) == 9);
+			test_check(query_acc<i64, 2>(acc, shape, {0, 1}, {2, 3}) == 16);
+		}
+
+		// 3次元: 2x2x2 の全要素が 1
+		{
+			const std::array<usize, 3> shape{3, 3, 3};
+			std::vector<i64> acc(27, 0);
+			for(usize i = 1; i < 3; ++i)
+				for(usize j = 1; j < 3; ++j)
+					for(usize k = 1; k < 3; ++k) acc[i * 9 + j * 3 + k] = 1;
+			do_acc<i64, 3>(acc, shape);
+			test_check(acc[26] == 8);
+			test_check(query_acc<i64, 3>(acc, shape, {1, 0, 0}, {2, 2, 2}) == 4);
+			test_check(query_acc<i64, 3>(acc, shape, {1, 1, 1}, {2, 2, 2}) == 1);
+		}
 	}
 } // namespace stew::acc_sum

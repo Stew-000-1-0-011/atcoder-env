@@ -7,6 +7,10 @@
 #include "integer_type.hpp"
 #include "monoid.hpp"
 #include "utility.hpp"
+#include <deque>
+#include <random>
+#include <string>
+#include <utility>
 
 namespace stew::swag::impl {
 	using monoid::Monoid;
@@ -156,3 +160,89 @@ namespace stew::swag::impl {
 namespace stew::swag {
 	using impl::Swag;
 }
+
+namespace stew::swag::test_detail {
+	// 結合的だが可換でない演算 (文字列の連結) で順序を確かめる
+	struct Cat {
+		std::string s;
+	};
+} // namespace stew::swag::test_detail
+
+namespace stew::monoid {
+	template <> struct Monoid<swag::test_detail::Cat> {
+		using T = swag::test_detail::Cat;
+		static auto op(const T& l, const T& r) -> T { return T{l.s + r.s}; }
+		static auto ide() -> T { return T{}; }
+	};
+} // namespace stew::monoid
+
+namespace stew::swag {
+	inline void test() {
+		using utility::test_check;
+		using test_detail::Cat;
+
+		// back 側に積んで、front 側が空のときに pop_front する
+		{
+			Swag<Cat> sw{};
+			test_check(sw.empty() && sw.fold().s.empty());
+			sw.push_back(Cat{"a"});
+			sw.push_back(Cat{"b"});
+			sw.push_back(Cat{"c"});
+			test_check(sw.size() == 3 && sw.fold().s == "abc");
+			test_check(sw.front().s == "a" && sw.back().s == "c");
+			sw.push_front(Cat{"z"});
+			test_check(sw.fold().s == "zabc");
+			test_check(sw.pop_back().s == "c");
+			test_check(sw.pop_front().s == "z");
+			test_check(sw.pop_front().s == "a");
+			test_check(sw.fold().s == "b");
+			test_check(sw.pop_back().s == "b");
+			test_check(sw.empty());
+		}
+
+		// front 側に積んで、back 側が空のときに pop_back する
+		{
+			Swag<Cat> sw{};
+			sw.push_front(Cat{"c"});
+			sw.push_front(Cat{"b"});
+			sw.push_front(Cat{"a"});
+			test_check(sw.fold().s == "abc");
+			test_check(sw.pop_back().s == "c");
+			test_check(sw.fold().s == "ab");
+			test_check(sw.pop_back().s == "b");
+			test_check(sw.pop_back().s == "a");
+			test_check(sw.empty());
+		}
+
+		// ランダムな操作を std::deque と比べる
+		{
+			std::mt19937 rng{42};
+			Swag<Cat> sw{};
+			std::deque<std::string> dq{};
+			for(int it = 0; it < 2000; ++it) {
+				const auto op = rng() % 4;
+				const std::string ch(1, char('a' + rng() % 26));
+				if(dq.empty() || op == 0) {
+					sw.push_back(Cat{ch});
+					dq.push_back(ch);
+				} else if(op == 1) {
+					sw.push_front(Cat{ch});
+					dq.push_front(ch);
+				} else if(op == 2) {
+					test_check(sw.pop_back().s == dq.back());
+					dq.pop_back();
+				} else {
+					test_check(sw.pop_front().s == dq.front());
+					dq.pop_front();
+				}
+
+				std::string all{};
+				for(const auto& s : dq) all += s;
+				test_check(sw.size() == dq.size() && sw.fold().s == all);
+				if(!dq.empty()) {
+					test_check(sw.front().s == dq.front() && sw.back().s == dq.back());
+				}
+			}
+		}
+	}
+} // namespace stew::swag

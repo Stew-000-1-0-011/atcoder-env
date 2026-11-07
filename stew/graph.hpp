@@ -9,13 +9,15 @@
 #include "integer_type.hpp"
 
 #include "sparse_matrix.hpp"
+#include <algorithm>
+#include "utility.hpp"
 
 namespace stew::graph {
 	template<class T_>
 	concept weighted_adjant = requires(const T_ imut, const usize v) {
 		{[](auto&& r) {
 			for(const auto& [next, w] : r) {
-
+				(void)next; (void)w;
 			}
 		}(imut(v))};
 	};
@@ -24,7 +26,7 @@ namespace stew::graph {
 	concept adjant = requires(const T_ imut, const usize v) {
 		{[](auto&& r) {
 			for(const auto& next : r) {
-
+				(void)next;
 			}
 		}(imut(v))};
 	};
@@ -33,7 +35,7 @@ namespace stew::graph {
 	concept mut_weighted_adjant = requires(const T_ imut, const usize v) {
 		{[](auto&& r) {
 			for(auto& [next, w] : r) {
-
+				(void)next; (void)w;
 			}
 		}(imut(v))};
 	};
@@ -42,7 +44,7 @@ namespace stew::graph {
 	concept mut_adjant = requires(const T_ imut, const usize v) {
 		{[](auto&& r) {
 			for(auto& next : r) {
-
+				(void)next;
 			}
 		}(imut(v))};
 	};
@@ -133,5 +135,51 @@ namespace stew::graph {
 		coo.is_sorted = true;
 
 		return std::move(coo).to_csr(group_count);
+	}
+} // namespace stew::graph
+
+namespace stew::graph {
+	inline void test() {
+		using utility::test_check;
+
+		// dijkstra: 0 -> 2 -> 1 -> 3 が最短
+		{
+			const std::vector<std::vector<std::pair<usize, i64>>> g{
+				{{1, 4}, {2, 1}},
+				{{3, 1}},
+				{{1, 2}},
+				{},
+			};
+			const auto dist = dijkstra<usize, i64>(
+				0, 3, [&](const usize v) -> const auto& { return g[v]; }
+			);
+			test_check(dist.at(0).first == 0);
+			test_check(dist.at(2) == std::pair<i64, usize>{1, 0});
+			test_check(dist.at(1) == std::pair<i64, usize>{3, 2});
+			test_check(dist.at(3) == std::pair<i64, usize>{4, 1});
+		}
+
+		// tarjan: {0, 1, 2} -> {3, 4}
+		{
+			const std::vector<std::vector<usize>> g{{1}, {2}, {0, 3}, {4}, {3}};
+			auto scc = tarjan(5, [&](const usize v) -> const auto& { return g[v]; });
+			const auto group = [&](const usize i) {
+				std::vector<usize> v{};
+				for(const auto x : scc.row(i)) v.push_back(x);
+				std::ranges::sort(v);
+				return v;
+			};
+			test_check(scc.acc_row.size() == 3);
+			// 逆トポロジカル順なので、行き先側の成分が先に来る
+			test_check(group(0) == std::vector<usize>{3, 4});
+			test_check(group(1) == std::vector<usize>{0, 1, 2});
+		}
+
+		// tarjan: 辺がない
+		{
+			const std::vector<std::vector<usize>> g(3);
+			auto scc = tarjan(3, [&](const usize v) -> const auto& { return g[v]; });
+			test_check(scc.acc_row.size() == 4);
+		}
 	}
 } // namespace stew::graph

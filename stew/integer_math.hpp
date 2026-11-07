@@ -7,6 +7,9 @@
 #include <vector>
 
 #include "integer_type.hpp"
+#include <random>
+#include <utility>
+#include "utility.hpp"
 
 namespace stew::integer_math {
 
@@ -192,5 +195,59 @@ namespace stew::integer_math {
 			++i2;
 		}
 		return ret;
+	}
+} // namespace stew::integer_math
+
+namespace stew::integer_math {
+	inline void test() {
+		using utility::test_check;
+
+		// log2 は decltype(n) が const 付きの型になりコンパイルできないため、現状テストしていない
+
+		// mod_pow
+		test_check(mod_pow<u64>(2, 10, 1000) == 24);
+		test_check(mod_pow<u64>(5, 0, 7) == 1);
+		test_check(mod_pow<u64>(3, 1'000'000'006, 1'000'000'007) == 1);
+		// 法が 2^32 以上 (途中の積が 64bit を超える)
+		test_check(
+			mod_pow<u64>(3, 1'000'000'000'000'000'000, 999'999'999'999'999'989)
+			== 531441
+		);
+		test_check(
+			mod_pow<u64>(2, 64, 1'000'000'000'000'000'003) == 446744073709551562
+		);
+
+		// 素数判定: 小さい数は試し割りと一致する
+		const auto naive_is_prime = [](const u64 n) {
+			if(n < 2) return false;
+			for(u64 d = 2; d * d <= n; ++d) {
+				if(n % d == 0) return false;
+			}
+			return true;
+		};
+		for(u64 n = 0; n < 2000; ++n) {
+			test_check(is_prime_4759123140<u64>(n) == naive_is_prime(n));
+			test_check(is_prime_u64<u64>(n) == naive_is_prime(n));
+		}
+		// 2^32 より大きい数
+		test_check(is_prime_4759123140<u64>(4'294'967'311));
+		test_check(!is_prime_4759123140<u64>(4'294'967'297));  // 641 * 6700417
+		test_check(is_prime_u64<u64>(4'294'967'311));
+		test_check(!is_prime_u64<u64>(4'294'967'297));
+		test_check(is_prime_u64<u64>(999'999'999'999'999'989));
+		test_check(!is_prime_u64<u64>(999'999'999'999'999'991));
+		test_check(is_prime_u64<u64>(1'000'000'000'000'000'003));
+
+		// 素因数分解
+		std::mt19937_64 rng{12345};
+		using F = std::vector<std::pair<u64, u64>>;
+		test_check(factorize(1, rng).empty());
+		test_check(factorize(97, rng) == F{{97, 1}});
+		test_check(factorize(360, rng) == F{{2, 3}, {3, 2}, {5, 1}});
+		test_check(
+			factorize(4'294'967'295, rng)
+			== F{{3, 1}, {5, 1}, {17, 1}, {257, 1}, {65537, 1}}
+		);
+		// 2^32 を超える数は is_prime_u64 / brent_rho の桁あふれで止まらない恐れがあるため、現状テストしていない
 	}
 } // namespace stew::integer_math

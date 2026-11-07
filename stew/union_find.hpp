@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "integer_type.hpp"
+#include "utility.hpp"
 
 namespace stew::union_find {
 
@@ -95,3 +96,37 @@ namespace stew::union_find {
 		}
 	};
 } // namespace stew
+
+namespace stew::union_find {
+	inline void test() {
+		using utility::test_check;
+
+		{
+			UnionFind<> uf(5);
+			test_check(uf.unite(0, 1).has_value());
+			test_check(uf.unite(3, 4).has_value());
+			test_check(!uf.unite(1, 0).has_value());
+			test_check(uf.find(0) == uf.find(1));
+			test_check(uf.find(3) == uf.find(4));
+			test_check(uf.find(0) != uf.find(3));
+			test_check(uf.find(2) == 2);
+			test_check(uf.unite(1, 4).has_value());
+			test_check(uf.find(0) == uf.find(3));
+			test_check(uf.size[uf.find(0)] == 4);
+		}
+
+		{
+			const auto plus = [](const i64 a, const i64 b) { return a + b; };
+			UnionFind<i64> uf(std::vector<i64>{1, 2, 3});
+			uf.unite(0, 1, plus, false);
+			test_check(uf.get(0) == 3 && uf.get(1) == 3);
+			uf.unite(0, 1, plus, false);  // 同じ集合なので何もしない
+			test_check(uf.get(0) == 3);
+			uf.unite(1, 0, plus, true);  // 同じ集合でも f を呼ぶ
+			test_check(uf.get(0) == 6);
+			test_check(uf.get(2) == 3);
+		}
+
+		// const な UnionFind<T_> の get は find が非 const なのでコンパイルできず、現状テストしていない
+	}
+} // namespace stew::union_find

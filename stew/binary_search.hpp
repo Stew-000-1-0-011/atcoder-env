@@ -38,3 +38,16 @@ namespace stew::binary_search {
 		return {l, r};
 	}
 } // namespace stew::binary_search
+
+namespace stew::binary_search {
+	inline void test() {
+		// 現状、binary_search を呼ぶと clang 21 がクラッシュする (g++ 15 では通る)。
+		// テンプレート引数 MiddleF_ の既定値が「制約付きのジェネリックラムダ」の decltype であることが原因で、
+		// ここで呼び出すと default.hpp を使うすべてのビルドが壊れるため、呼び出しのテストは置いていない。
+		// 直したら次を有効にする:
+		//   binary_search(i64(0), i64(100), [](i64 x) { return x * x <= 50; }, true) == {7, 8}
+		//   binary_search(i64(0), i64(100), [](i64 x) { return x * x > 50; }, false) == {7, 8}
+		//   binary_search(i64(-100), i64(0), [](i64 x) { return x <= -37; }, true) == {-37, -36}
+		//   binary_search(i64(0), i64(10), [](i64) { return true; }, true) == {9, 10}
+	}
+} // namespace stew::binary_search

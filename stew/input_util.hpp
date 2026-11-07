@@ -2,6 +2,11 @@
 
 #include <concepts>
 #include <iostream>
+#include <sstream>
+#include <string>
+#include <tuple>
+#include <utility>
+#include "utility.hpp"
 namespace stew::input_util {
 	struct InputMarker {};
 
@@ -24,5 +29,22 @@ namespace stew::input_util {
 
 	template <class... Args_> inline auto inputs() noexcept {
 		return std::tuple{input<Args_>()...};
+	}
+} // namespace stew::input_util
+
+namespace stew::input_util {
+	inline void test() {
+		using utility::test_check;
+
+		std::istringstream iss{"3 5 abc\n7 8 9\n"};
+		auto* const old = std::cin.rdbuf(iss.rdbuf());
+
+		test_check(input<int>() == 3);
+		test_check(input<Z<int>>() == 4);  // 1-indexed -> 0-indexed
+		test_check(input<std::string>() == "abc");
+		const auto [a, b, c] = inputs<int, Z<int>, long>();
+		test_check(a == 7 && b == 7 && c == 9);
+
+		std::cin.rdbuf(old);
 	}
 } // namespace stew::input_util

@@ -19,3 +19,16 @@ namespace stew {
 
 	using namespace integer_type;
 } // namespace stew
+
+namespace stew::integer_type {
+	inline void test() {
+		static_assert(sizeof(u8) == 1 && sizeof(i8) == 1);
+		static_assert(sizeof(u16) == 2 && sizeof(i16) == 2);
+		static_assert(sizeof(u32) == 4 && sizeof(i32) == 4);
+		static_assert(sizeof(u64) == 8 && sizeof(i64) == 8);
+		static_assert(sizeof(i128) == 16);
+		static_assert(i128(-1) < 0);
+		static_assert(u64(-1) > 0);
+		static_assert(sizeof(usize) == sizeof(void*));
+	}
+} // namespace stew::integer_type

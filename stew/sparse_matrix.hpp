@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "integer_type.hpp"
+#include "utility.hpp"
 
 namespace stew::sparse_matrix {
 
@@ -250,4 +251,61 @@ namespace stew::sparse_matrix {
 			return Csr<>{.acc_row = std::move(acc_row), .col = std::move(col)};
 		}
 	};
+} // namespace stew::sparse_matrix
+
+namespace stew::sparse_matrix {
+	inline void test() {
+		using utility::test_check;
+
+		const auto to_vec = [](auto&& r) {
+			std::vector<usize> v{};
+			for(const auto c : r) v.push_back(c);
+			return v;
+		};
+
+		// 要素なし
+		{
+			auto coo = Coo<>::make(3);
+			coo.add({1, 2});
+			coo.add({0, 1});
+			coo.add({1, 0});
+			auto csr = std::move(coo).to_csr(3);
+			test_check(csr.acc_row == std::vector<usize>{0, 1, 3, 3});
+			test_check(csr.col == std::vector<usize>{1, 0, 2});
+			test_check(to_vec(csr.row(0)) == std::vector<usize>{1});
+			test_check(to_vec(csr.row(1)) == std::vector<usize>{0, 2});
+			test_check(to_vec(csr.row(2)).empty());
+			test_check(to_vec(csr.row(5)).empty());  // 範囲外の行は空
+			test_check(to_vec(std::as_const(csr).c_row(1)) == std::vector<usize>{0, 2});
+
+			// range-for で全行を回す
+			usize rows = 0;
+			usize sum = 0;
+			for(auto r : csr) {
+				++rows;
+				for(const auto c : r) sum += c;
+			}
+			test_check(rows == 3 && sum == 3);
+		}
+
+		// 要素あり
+		{
+			auto coo = Coo<i64>::make(3);
+			coo.add({1, 0}, 10);
+			coo.add({0, 2}, 20);
+			coo.add({0, 1}, 30);
+			auto csr = std::move(coo).to_csr(2);
+			test_check(csr.acc_row == std::vector<usize>{0, 2, 3});
+			test_check(csr.col == std::vector<usize>{1, 2, 0});
+			test_check(csr.data == std::vector<i64>{30, 20, 10});
+			for(auto p : csr.row(0)) p.second += 1;  // 要素は参照で返る
+			test_check(csr.data == std::vector<i64>{31, 21, 10});
+		}
+
+		// 既定構築 (行なし)
+		{
+			const Csr<> empty{};
+			test_check(to_vec(empty.c_row(0)).empty());
+		}
+	}
 } // namespace stew::sparse_matrix
