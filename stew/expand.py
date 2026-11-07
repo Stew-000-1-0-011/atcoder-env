@@ -198,8 +198,9 @@ def main() -> int:
 
 	result = "\n".join(lines) + "\n"
 
-	# 出力は常に UTF-8 (改行は LF) で書く。
-	# 標準出力をそのまま使うと、Windows ではコンソールの文字コード (cp932 など) で書かれて文字化けする。
+	# 出力は常に UTF-8 (改行は LF) のバイト列で書く。
+	# Windows ではリダイレクト先の標準出力がロケールの文字コード (cp932) になり、
+	# 改行も \r\n に変換されるので、標準出力でも -o でも UTF-8 のバイト列をそのまま書き出す
 	data = result.encode("utf-8")
 	if args.output:
 		Path(args.output).write_bytes(data)

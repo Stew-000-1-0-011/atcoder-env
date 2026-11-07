@@ -6,7 +6,11 @@
 			"type": "shell",
 			"command": "bash",
 			"args": [
-				"${workspaceFolder}/scripts/build_cpp.bash"
+				{
+					// Windows ではパス変数が \ 区切りで展開されるので、bash に消されないよう強い引用で渡す
+					"value": "${workspaceFolder}/scripts/build_cpp.bash",
+					"quoting": "strong"
+				}
 			],
 			"group": {
 				"kind": "build",

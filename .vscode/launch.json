@@ -16,7 +16,9 @@
 				null
 			],
 			"cwd": "${workspaceFolder}",
-			"preLaunchTask": "build_cpp"
+			// それはそれでCodeLLDBの不具合を踏むので、やはりデフォルトプロファイル先をcmdで動くスクリプトにし、そこで確実にMSYSのシェルを呼ぶ羽目に...
+			// // 統合ターミナルを使うと、VS Code がプロファイルの env を渡さず MSYS 環境のシェルが残るので、デバッグコンソールに出す
+			// "terminal": "console",
 		}
 	]
 }
