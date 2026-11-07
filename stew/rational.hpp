@@ -10,9 +10,15 @@ namespace stew::rational {
 		T_ nume{};
 		T_ deno{1};
 
-		constexpr auto simp() noexcept -> Rational {
+		// 約分し、分母を正にしたものを返す
+		constexpr auto simp() const noexcept -> Rational {
 			const auto g = std::gcd(this->nume, this->deno);
-			return Rational{this->nume / g, this->deno / g};
+			Rational ret{this->nume / g, this->deno / g};
+			if(ret.deno < 0) {
+				ret.nume = -ret.nume;
+				ret.deno = -ret.deno;
+			}
+			return ret;
 		}
 
 		constexpr auto operator+=(const Rational& rhs) noexcept -> Rational& {
@@ -36,6 +42,10 @@ namespace stew::rational {
 		constexpr auto operator/=(const Rational& rhs) noexcept -> Rational& {
 			this->nume *= rhs.deno;
 			this->deno *= rhs.nume;
+			if(this->deno < 0) {
+				this->nume = -this->nume;
+				this->deno = -this->deno;
+			}
 			return *this;
 		}
 
@@ -66,7 +76,9 @@ namespace stew::rational {
 		friend auto operator<=>(
 			const Rational& lhs, const Rational& rhs
 		) noexcept -> std::strong_ordering {
-			return lhs.nume * rhs.deno <=> rhs.nume * lhs.deno;
+			// 両辺に分母を掛けて比べるので、分母の符号が異なるときは向きが逆になる
+			const auto ord = lhs.nume * rhs.deno <=> rhs.nume * lhs.deno;
+			return (lhs.deno < 0) != (rhs.deno < 0) ? 0 <=> ord : ord;
 		}
 
 		friend auto
@@ -97,11 +109,22 @@ namespace stew::rational {
 			const R s = R{0, 5}.simp();
 			test_check(s.nume == 0 && s.deno == 1);
 		}
+		{
+			const R s = R{3, -6}.simp();
+			test_check(s.nume == -1 && s.deno == 2);
+		}
 
 		// 割り算で分母が負になる場合 (1 / (-2) = -1/2)
 		const R neg = R{1, 1} / R{-2, 1};
 		test_check(neg == R{-1, 2});
 		test_check(neg < R{0, 1});
 		test_check(neg < R{1, 1});
+		test_check(neg.deno > 0);
+
+		// 分母が負のまま作った値どうしの比較
+		test_check(R{1, -2} < R{1, 3});
+		test_check(R{1, -2} < R{-1, -3});
+		test_check(R{-1, -2} > R{1, 3});
+		test_check(R{1, -2} == R{-1, 2});
 	}
 } // namespace stew::rational

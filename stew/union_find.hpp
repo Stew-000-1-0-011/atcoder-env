@@ -24,10 +24,6 @@ namespace stew::union_find {
 			}
 		}
 
-		constexpr auto get(const usize x) const noexcept -> const T_& {
-			return this->data[this->find(x)];
-		}
-
 		constexpr auto get(const usize x) noexcept -> T_& {
 			return this->data[this->find(x)];
 		}
@@ -95,7 +91,7 @@ namespace stew::union_find {
 			return x;
 		}
 	};
-} // namespace stew
+} // namespace stew::union_find
 
 namespace stew::union_find {
 	inline void test() {
@@ -127,6 +123,5 @@ namespace stew::union_find {
 			test_check(uf.get(2) == 3);
 		}
 
-		// const な UnionFind<T_> の get は find が非 const なのでコンパイルできず、現状テストしていない
 	}
 } // namespace stew::union_find

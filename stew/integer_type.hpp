@@ -14,6 +14,7 @@ namespace stew {
 		using i32 = std::int32_t;
 		using i64 = std::int64_t;
 		using i128 = __int128;
+		using u128 = unsigned __int128;
 		using usize = std::size_t;
 	} // namespace integer_type
 
@@ -26,7 +27,8 @@ namespace stew::integer_type {
 		static_assert(sizeof(u16) == 2 && sizeof(i16) == 2);
 		static_assert(sizeof(u32) == 4 && sizeof(i32) == 4);
 		static_assert(sizeof(u64) == 8 && sizeof(i64) == 8);
-		static_assert(sizeof(i128) == 16);
+		static_assert(sizeof(i128) == 16 && sizeof(u128) == 16);
+		static_assert(u128(-1) > 0);
 		static_assert(i128(-1) < 0);
 		static_assert(u64(-1) > 0);
 		static_assert(sizeof(usize) == sizeof(void*));

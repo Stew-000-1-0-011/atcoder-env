@@ -63,7 +63,7 @@ namespace stew::swag::impl {
 			this->front_.emplace_back(std::move(x), std::move(acc));
 		}
 
-		constexpr auto pop_back() noexcept -> T_ {
+		constexpr auto pop_back() -> T_ {
 			if(this->back_.size() == 1 && this->front_.size() == 1) {
 				throw std::runtime_error{"panic! pop_back from empty swag."};
 			}
@@ -107,7 +107,7 @@ namespace stew::swag::impl {
 			}
 		}
 
-		constexpr auto pop_front() noexcept -> T_ {
+		constexpr auto pop_front() -> T_ {
 			if(this->back_.size() == 1 && this->front_.size() == 1) {
 				throw std::runtime_error{"panic! pop_front from empty swag."};
 			}
