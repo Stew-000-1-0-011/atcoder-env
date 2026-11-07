@@ -7,7 +7,6 @@
 #include <vector>
 
 #include "integer_type.hpp"
-#include "utility.hpp"
 
 namespace stew::union_find {
 
@@ -93,6 +92,9 @@ namespace stew::union_find {
 	};
 } // namespace stew::union_find
 
+// stew:test-begin (expand.py はここから stew:test-end までを取り除く)
+#include "utility.hpp"
+
 namespace stew::union_find {
 	inline void test() {
 		using utility::test_check;
@@ -125,3 +127,4 @@ namespace stew::union_find {
 
 	}
 } // namespace stew::union_find
+// stew:test-end

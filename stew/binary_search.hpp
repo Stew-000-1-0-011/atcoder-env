@@ -1,18 +1,19 @@
 #pragma once
 
 #include <concepts>
+#include <numeric>
 #include <utility>
 
 #include "integer_type.hpp"
-#include "utility.hpp"
 
 namespace stew::binary_search {
 	// 既定の中間値。整数以外では呼べないので、binary_search の制約で弾かれる。
 	// (制約付きジェネリックラムダの decltype を既定値にすると clang がクラッシュするため、名前付きの型にしている)
+	// std::midpoint は l + r が桁あふれする場合も正しく、l 側に丸める (r - l >= 2 なら l < mid < r)
 	struct DefaultMiddle {
 		template <std::integral Int_>
-		constexpr auto operator()(const Int_& l, const Int_& r) const {
-			return (l + r) / 2;
+		constexpr auto operator()(const Int_& l, const Int_& r) const -> Int_ {
+			return std::midpoint(l, r);
 		}
 	};
 
@@ -47,6 +48,10 @@ namespace stew::binary_search {
 	}
 } // namespace stew::binary_search
 
+// stew:test-begin (expand.py はここから stew:test-end までを取り除く)
+#include <limits>
+#include "utility.hpp"
+
 namespace stew::binary_search {
 	inline void test() {
 		using utility::test_check;
@@ -79,6 +84,22 @@ namespace stew::binary_search {
 			);
 			test_check(l == 9 && r == 10);
 		}
+		// 両端が大きくても桁あふれしない
+		{
+			constexpr i64 big = std::numeric_limits<i64>::max();
+			const auto [l, r] = binary_search(
+				big - 100, big, [](const i64 x) { return x <= big - 37; }, true
+			);
+			test_check(l == big - 37 && r == big - 36);
+		}
+		{
+			constexpr i64 small = std::numeric_limits<i64>::min();
+			const auto [l, r] = binary_search(
+				small, small + 100, [](const i64 x) { return x <= small + 37; }, true
+			);
+			test_check(l == small + 37 && r == small + 38);
+		}
+
 		// 中間値を指定する
 		{
 			i64 calls = 0;
@@ -90,3 +111,4 @@ namespace stew::binary_search {
 		}
 	}
 } // namespace stew::binary_search
+// stew:test-end

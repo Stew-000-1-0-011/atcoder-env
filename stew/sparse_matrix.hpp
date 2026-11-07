@@ -2,14 +2,12 @@
 
 #include <algorithm>
 #include <cstddef>
-#include <memory>
 #include <type_traits>
 #include <ranges>
 #include <utility>
 #include <vector>
 
 #include "integer_type.hpp"
-#include "utility.hpp"
 
 namespace stew::sparse_matrix {
 	namespace impl {
@@ -285,6 +283,10 @@ namespace stew::sparse_matrix {
 	};
 } // namespace stew::sparse_matrix
 
+// stew:test-begin (expand.py はここから stew:test-end までを取り除く)
+#include <memory>
+#include "utility.hpp"
+
 namespace stew::sparse_matrix {
 	inline void test() {
 		using utility::test_check;
@@ -366,3 +368,4 @@ namespace stew::sparse_matrix {
 		}
 	}
 } // namespace stew::sparse_matrix
+// stew:test-end

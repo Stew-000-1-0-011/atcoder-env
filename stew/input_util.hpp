@@ -2,11 +2,8 @@
 
 #include <concepts>
 #include <iostream>
-#include <sstream>
-#include <string>
 #include <tuple>
 #include <utility>
-#include "utility.hpp"
 namespace stew::input_util {
 	struct InputMarker {};
 
@@ -32,6 +29,11 @@ namespace stew::input_util {
 	}
 } // namespace stew::input_util
 
+// stew:test-begin (expand.py はここから stew:test-end までを取り除く)
+#include <sstream>
+#include <string>
+#include "utility.hpp"
+
 namespace stew::input_util {
 	inline void test() {
 		using utility::test_check;
@@ -48,3 +50,4 @@ namespace stew::input_util {
 		std::cin.rdbuf(old);
 	}
 } // namespace stew::input_util
+// stew:test-end

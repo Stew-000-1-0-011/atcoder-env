@@ -2,8 +2,6 @@
 
 #include <compare>
 #include <numeric>
-#include "integer_type.hpp"
-#include "utility.hpp"
 
 namespace stew::rational {
 	template <class T_> struct Rational final {
@@ -88,6 +86,10 @@ namespace stew::rational {
 	};
 } // namespace stew::rational
 
+// stew:test-begin (expand.py はここから stew:test-end までを取り除く)
+#include "integer_type.hpp"
+#include "utility.hpp"
+
 namespace stew::rational {
 	inline void test() {
 		using utility::test_check;
@@ -128,3 +130,4 @@ namespace stew::rational {
 		test_check(R{1, -2} == R{-1, 2});
 	}
 } // namespace stew::rational
+// stew:test-end

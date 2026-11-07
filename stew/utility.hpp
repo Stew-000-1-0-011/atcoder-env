@@ -2,10 +2,6 @@
 
 #include <concepts>
 #include <type_traits>
-#include <cstddef>
-#include <cstdio>
-#include <print>
-#include <source_location>
 namespace stew::utility {
 	template <class T_, class U_>
 	concept univ_ref = std::same_as<std::remove_cvref_t<T_>, U_>;
@@ -19,6 +15,12 @@ namespace stew::utility {
 namespace stew {
 	using utility::univ_ref;
 }
+
+// stew:test-begin (expand.py はここから stew:test-end までを取り除く)
+#include <cstddef>
+#include <cstdio>
+#include <print>
+#include <source_location>
 
 namespace stew::utility {
 	// テストの失敗数
@@ -49,3 +51,4 @@ namespace stew::utility {
 		debug();
 	}
 } // namespace stew::utility
+// stew:test-end

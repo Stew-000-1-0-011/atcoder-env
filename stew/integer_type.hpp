@@ -21,6 +21,8 @@ namespace stew {
 	using namespace integer_type;
 } // namespace stew
 
+// stew:test-begin (expand.py はここから stew:test-end までを取り除く)
+
 namespace stew::integer_type {
 	inline void test() {
 		static_assert(sizeof(u8) == 1 && sizeof(i8) == 1);
@@ -34,3 +36,4 @@ namespace stew::integer_type {
 		static_assert(sizeof(usize) == sizeof(void*));
 	}
 } // namespace stew::integer_type
+// stew:test-end

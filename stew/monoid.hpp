@@ -1,7 +1,6 @@
 #pragma once
 
 #include <concepts>
-#include "utility.hpp"
 
 namespace stew::monoid {
 	template <class T_> struct Monoid {
@@ -16,6 +15,9 @@ namespace stew::monoid {
 		{ Monoid<T_>::ide() } -> std::same_as<T_>;
 	};
 } // namespace stew::monoid
+
+// stew:test-begin (expand.py はここから stew:test-end までを取り除く)
+#include "utility.hpp"
 
 namespace stew::monoid {
 	namespace test_detail {
@@ -41,3 +43,4 @@ namespace stew::monoid {
 		test_check(Monoid<Sum>::op(Monoid<Sum>::ide(), Sum{7}).v == 7);
 	}
 } // namespace stew::monoid
+// stew:test-end

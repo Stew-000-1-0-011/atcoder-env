@@ -1,5 +1,7 @@
 #pragma once
 
+#include <deque>
+#include <iterator>
 #include <queue>
 #include <ranges>
 #include <tuple>
@@ -12,7 +14,6 @@
 
 #include "sparse_matrix.hpp"
 #include <algorithm>
-#include "utility.hpp"
 
 namespace stew::graph {
 	namespace impl {
@@ -99,36 +100,68 @@ namespace stew::graph {
 		std::vector<char> on_stack(n, false);
 		usize now_ord = 0;
 		usize group_count = 0;
-		
-		auto dfs = [&](this auto&& self, const usize v) -> void {
+
+		// 再帰の代わりに、DFS の途中の状態 (頂点と、隣接頂点をどこまで見たか) を積む。
+		// adj(v) が view を返す場合、イテレータが view 自身を指すことがあるので、
+		// 要素の場所が動かない deque に置き、view とイテレータを同じフレームに持つ。
+		using Adj = std::remove_reference_t<decltype(adj)>;
+		using Range = decltype(adj(usize{}));
+		struct Frame {
+			usize v;
+			Range range;
+			std::ranges::iterator_t<std::remove_reference_t<Range>> it;
+			std::ranges::sentinel_t<std::remove_reference_t<Range>> end;
+
+			Frame(const usize v_, Adj& adj_)
+				: v(v_), range(adj_(v_)), it(std::ranges::begin(range)),
+				  end(std::ranges::end(range)) {}
+		};
+		std::deque<Frame> frames{};
+
+		const auto visit = [&](const usize v) {
 			low[v] = ord[v] = now_ord;
 			now_ord++;
 			stack.emplace_back(v);
 			on_stack[v] = true;
-
-			for(const auto& next : adj(v)) {
-				if(ord[next] == usize(-1)) {
-					self(next);
-					low[v] = std::min(low[v], low[next]);
-				}
-				else if(on_stack[next]) {  // on_stackでない場合、既に訪問しきっている -> その頂点からこちらへ戻れない
-					low[v] = std::min(low[v], ord[next]);
-				}
-			}
-
-			if(low[v] == ord[v]) {  // そのSCCのルートならば
-				while(true) {
-					const usize w = stack.back(); stack.pop_back();
-					on_stack[w] = false;
-					coo.add({group_count, w});
-					if(w == v) break;
-				}
-				group_count++;
-			}
+			frames.emplace_back(v, adj);
 		};
 
-		for(usize i = 0; i < n; ++i) {
-			if(ord[i] == usize(-1)) dfs(i);
+		for(usize root = 0; root < n; ++root) {
+			if(ord[root] != usize(-1)) continue;
+			visit(root);
+
+			while(!frames.empty()) {
+				Frame& f = frames.back();
+				const usize v = f.v;
+
+				if(f.it != f.end) {
+					const usize next = *f.it;
+					++f.it;
+					if(ord[next] == usize(-1)) {
+						visit(next);  // 戻ってきたときに low[v] を更新する (下の else)
+					}
+					else if(on_stack[next]) {  // on_stackでない場合、既に訪問しきっている -> その頂点からこちらへ戻れない
+						low[v] = std::min(low[v], ord[next]);
+					}
+					continue;
+				}
+
+				// v の隣接頂点を見終えた
+				if(low[v] == ord[v]) {  // そのSCCのルートならば
+					while(true) {
+						const usize w = stack.back(); stack.pop_back();
+						on_stack[w] = false;
+						coo.add({group_count, w});
+						if(w == v) break;
+					}
+					group_count++;
+				}
+				frames.pop_back();
+				if(!frames.empty()) {
+					const usize parent = frames.back().v;
+					low[parent] = std::min(low[parent], low[v]);
+				}
+			}
 		}
 
 		coo.is_sorted = true;
@@ -136,6 +169,10 @@ namespace stew::graph {
 		return std::move(coo).to_csr(group_count);
 	}
 } // namespace stew::graph
+
+// stew:test-begin (expand.py はここから stew:test-end までを取り除く)
+#include <random>
+#include "utility.hpp"
 
 namespace stew::graph {
 	inline void test() {
@@ -198,6 +235,70 @@ namespace stew::graph {
 			test_check(group(1) == std::vector<usize>{0, 1, 2});
 		}
 
+		// tarjan: 長い一本道 (再帰だとスタックが深くなる)
+		{
+			const usize n = 200'000;
+			std::vector<std::vector<usize>> path(n);
+			for(usize i = 0; i + 1 < n; ++i) path[i].push_back(i + 1);
+			auto scc = tarjan(n, [&](const usize v) -> const auto& { return path[v]; });
+			test_check(scc.rows() == n);
+			// 逆トポロジカル順なので、最後の頂点が最初の成分になる
+			test_check(scc.col.front() == n - 1 && scc.col.back() == 0);
+
+			// 一周する閉路は1つの成分になる
+			path[n - 1].push_back(0);
+			auto cyc = tarjan(n, [&](const usize v) -> const auto& { return path[v]; });
+			test_check(cyc.rows() == 1 && cyc.col.size() == n);
+		}
+
+		// tarjan: view を返す隣接 (Csr の行)
+		{
+			auto coo = sparse_matrix::Coo<>::make(5);
+			coo.add({0, 1});
+			coo.add({1, 0});
+			coo.add({1, 2});
+			auto g = std::move(coo).to_csr(3);
+			auto scc = tarjan(3, [&](const usize v) { return g.row(v); });
+			test_check(scc.rows() == 2);
+		}
+
+		// tarjan: ランダムなグラフで、推移閉包から求めた強連結成分と比べる
+		{
+			std::mt19937 rng{7};
+			for(int iter = 0; iter < 200; ++iter) {
+				const usize n = 1 + rng() % 12;
+				std::vector<std::vector<usize>> g(n);
+				std::vector<std::vector<char>> reach(n, std::vector<char>(n, 0));
+				for(usize i = 0; i < n; ++i) reach[i][i] = 1;
+				const usize m = rng() % (n * 3 + 1);
+				for(usize e = 0; e < m; ++e) {
+					const usize a = rng() % n;
+					const usize b = rng() % n;
+					g[a].push_back(b);
+					reach[a][b] = 1;
+				}
+				for(usize k = 0; k < n; ++k)
+					for(usize i = 0; i < n; ++i)
+						for(usize j = 0; j < n; ++j)
+							if(reach[i][k] && reach[k][j]) reach[i][j] = 1;
+
+				auto scc = tarjan(n, [&](const usize v) -> const auto& { return g[v]; });
+				std::vector<usize> group(n, usize(-1));
+				for(usize c = 0; c < scc.rows(); ++c) {
+					for(const auto v : scc.row(c)) group[v] = c;
+				}
+				for(usize i = 0; i < n; ++i) {
+					test_check(group[i] != usize(-1));
+					for(usize j = 0; j < n; ++j) {
+						const bool same = reach[i][j] && reach[j][i];
+						test_check(same == (group[i] == group[j]));
+						// 逆トポロジカル順: i から j へ行けるなら、j の成分が先 (番号が小さいか同じ)
+						if(reach[i][j]) test_check(group[j] <= group[i]);
+					}
+				}
+			}
+		}
+
 		// tarjan: 辺がない
 		{
 			const std::vector<std::vector<usize>> g(3);
@@ -206,3 +307,4 @@ namespace stew::graph {
 		}
 	}
 } // namespace stew::graph
+// stew:test-end

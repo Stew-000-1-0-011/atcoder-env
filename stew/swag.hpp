@@ -7,9 +7,6 @@
 #include "integer_type.hpp"
 #include "monoid.hpp"
 #include "utility.hpp"
-#include <deque>
-#include <random>
-#include <string>
 #include <utility>
 
 namespace stew::swag::impl {
@@ -63,7 +60,8 @@ namespace stew::swag::impl {
 			this->front_.emplace_back(std::move(x), std::move(acc));
 		}
 
-		constexpr auto pop_back() -> T_ {
+		// 空なら panic (noexcept なので throw は std::terminate になる)
+		constexpr auto pop_back() noexcept -> T_ {
 			if(this->back_.size() == 1 && this->front_.size() == 1) {
 				throw std::runtime_error{"panic! pop_back from empty swag."};
 			}
@@ -107,7 +105,8 @@ namespace stew::swag::impl {
 			}
 		}
 
-		constexpr auto pop_front() -> T_ {
+		// 空なら panic (noexcept なので throw は std::terminate になる)
+		constexpr auto pop_front() noexcept -> T_ {
 			if(this->back_.size() == 1 && this->front_.size() == 1) {
 				throw std::runtime_error{"panic! pop_front from empty swag."};
 			}
@@ -160,6 +159,11 @@ namespace stew::swag::impl {
 namespace stew::swag {
 	using impl::Swag;
 }
+
+// stew:test-begin (expand.py はここから stew:test-end までを取り除く)
+#include <deque>
+#include <random>
+#include <string>
 
 namespace stew::swag::test_detail {
 	// 結合的だが可換でない演算 (文字列の連結) で順序を確かめる
@@ -246,3 +250,4 @@ namespace stew::swag {
 		}
 	}
 } // namespace stew::swag
+// stew:test-end
