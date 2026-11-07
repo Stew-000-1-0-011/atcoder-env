@@ -166,7 +166,10 @@ def main() -> int:
 		Path(args.output).write_text(result, encoding="utf-8")
 		print(f"書き出しました: {args.output}", file=sys.stderr)
 	else:
-		sys.stdout.write(result)
+		# Windows ではリダイレクト先の標準出力がロケールの文字コード (cp932) になり、
+		# 改行も \r\n に変換されるので、UTF-8 のバイト列をそのまま書き出す
+		sys.stdout.flush()
+		sys.stdout.buffer.write(result.encode("utf-8"))
 
 	return 0
 
