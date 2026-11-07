@@ -198,11 +198,16 @@ def main() -> int:
 
 	result = "\n".join(lines) + "\n"
 
+	# 出力は常に UTF-8 (改行は LF) で書く。
+	# 標準出力をそのまま使うと、Windows ではコンソールの文字コード (cp932 など) で書かれて文字化けする。
+	data = result.encode("utf-8")
 	if args.output:
-		Path(args.output).write_text(result, encoding="utf-8")
+		Path(args.output).write_bytes(data)
 		print(f"書き出しました: {args.output}", file=sys.stderr)
 	else:
-		sys.stdout.write(result)
+		sys.stdout.flush()
+		sys.stdout.buffer.write(data)
+		sys.stdout.buffer.flush()
 
 	return 0
 
